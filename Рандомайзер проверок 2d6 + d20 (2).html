@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Рандомайзер 2d6 + d20</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card-bg: #181b26;
+    --card-border: #2b3147;
+    --text-primary: #f0f3fa;
+    --text-secondary: #9aa5bf;
+    --accent: #e5933a;
+    --accent-glow: rgba(229, 147, 58, 0.35);
+    --success: #38bdf8;
+    --success-glow: rgba(56, 189, 248, 0.25);
+    --partial: #f59e0b;
+    --partial-glow: rgba(245, 158, 11, 0.25);
+    --fail: #f43f5e;
+    --fail-glow: rgba(244, 63, 94, 0.25);
+    --special: #c084fc;
+    --special-glow: rgba(192, 132, 252, 0.25);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 680px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  header {
+    text-align: center;
+  }
+
+  header h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #f0f3fa 30%, #e5933a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  header p {
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    margin-top: 4px;
+  }
+
+  /* Режим (Социальное / Бой) */
+  .mode-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: #12151e;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 6px;
+  }
+
+  /* Модификатор */
+  .modifier-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .modifier-label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .modifier-label span {
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: #64748b;
+  }
+
+  .modifier-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mod-btn {
+    background: #252b3b;
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+
+  .mod-btn:hover {
+    background: #333b52;
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .mod-btn:active {
+    transform: scale(0.95);
+  }
+
+  .modifier-val {
+    font-size: 1.05rem;
+    font-weight: 700;
+    min-width: 42px;
+    text-align: center;
+    color: var(--accent);
+    background: #12151e;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--card-border);
+  }
+
+  .mod-reset {
+    font-size: 0.75rem;
+    background: transparent;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-left: 2px;
+  }
+
+  .mod-reset:hover {
+    border-color: #f43f5e;
+    color: #f43f5e;
+  }
+
+  .mode-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .mode-btn.active {
+    background: var(--accent);
+    color: #12151e;
+    box-shadow: 0 4px 12px var(--accent-glow);
+  }
+
+  /* Кубики */
+  .dice-board {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 8px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+  }
+
+  .dice-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dice-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+  }
+
+  .dice-pair {
+    display: flex;
+    gap: 10px;
+  }
+
+  .die {
+    width: 58px;
+    height: 58px;
+    background: #202534;
+    border: 2px solid #3b425b;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #f0f3fa;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s;
+    user-select: none;
+  }
+
+  .die.rolling {
+    animation: shake 0.45s ease-in-out infinite;
+  }
+
+  .die.d20 {
+    width: 66px;
+    height: 66px;
+    background: radial-gradient(circle, #2a203c 0%, #1a1727 100%);
+    border-color: #5c4488;
+    color: #d8b4fe;
+    font-size: 1.7rem;
+    clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+    border-radius: 0;
+  }
+
+  @keyframes shake {
+    0% { transform: translate(0, 0) rotate(0deg) scale(0.95); }
+    25% { transform: translate(-3px, 3px) rotate(-6deg) scale(1.05); }
+    50% { transform: translate(3px, -2px) rotate(6deg) scale(0.95); }
+    75% { transform: translate(-2px, -3px) rotate(-4deg) scale(1.02); }
+    100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  }
+
+  .dice-divider {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--card-border);
+  }
+
+  /* Кнопки бросков */
+  .actions-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .roll-btn {
+    background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 16px 24px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(234, 88, 12, 0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .roll-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(234, 88, 12, 0.55);
+  }
+
+  .roll-btn:active {
+    transform: translateY(1px);
+  }
+
+  .roll-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .secondary-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .sub-btn {
+    background: #1e293b;
+    color: #cbd5e1;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .sub-btn:hover {
+    background: #334155;
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  .sub-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Блок результатов */
+  .results {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .tier-badge {
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1a1e2b;
+    border: 1px solid var(--card-border);
+  }
+
+  .tier-badge.success {
+    background: #0c2333;
+    border-color: #0284c7;
+    color: #38bdf8;
+    box-shadow: 0 4px 14px var(--success-glow);
+  }
+
+  .tier-badge.partial {
+    background: #2b1d0c;
+    border-color: #d97706;
+    color: #fbbf24;
+    box-shadow: 0 4px 14px var(--partial-glow);
+  }
+
+  .tier-badge.fail {
+    background: #2b0e17;
+    border-color: #e11d48;
+    color: #fb7185;
+    box-shadow: 0 4px 14px var(--fail-glow);
+  }
+
+  .tier-score {
+    font-size: 0.85rem;
+    opacity: 0.85;
+    font-weight: 600;
+  }
+
+  /* Карточка спецэффекта (2 или 12) */
+  .special-card {
+    background: linear-gradient(135deg, rgba(147, 51, 234, 0.12) 0%, rgba(79, 70, 229, 0.12) 100%);
+    border: 1.5px solid #a855f7;
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 4px 16px var(--special-glow);
+  }
+
+  .special-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #c084fc;
+  }
+
+  .special-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #f3e8ff;
+  }
+
+  .special-desc {
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: #e9d5ff;
+  }
+
+  .special-universal {
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(168, 85, 247, 0.35);
+    font-size: 0.85rem;
+    color: #d8b4fe;
+  }
+
+  /* Карточка d20 эффекта */
+  .effect-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .effect-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  .effect-num {
+    background: #24293a;
+    color: #f0f3fa;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 800;
+  }
+
+  .effect-text {
+    font-size: 1.02rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+  }
+
+  /* Сворачиваемая справка */
+  details {
+    background: #131620;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  details summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-primary);
+    user-select: none;
+  }
+
+  details div {
+    margin-top: 8px;
+    line-height: 1.45;
+  }
+
+  /* Лог истории */
+  .history-box {
+    background: #11141c;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 12px;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+
+  .history-title {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.8rem;
+  }
+
+  .history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    background: #161a25;
+    border-radius: 6px;
+    color: var(--text-secondary);
+  }
+
+  .history-item span b {
+    color: var(--text-primary);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px 16px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Генератор проверок 2d6 + d20</h1>
+    <p>Бросок исхода (2d6) и детализирующий эффект (d20)</p>
+  </header>
+
+  <!-- Переключатель режима -->
+  <div class="mode-switch">
+    <button class="mode-btn active" id="btnSocial" onclick="setMode('social')">
+      <span>💬 Социальное</span>
+    </button>
+    <button class="mode-btn" id="btnCombat" onclick="setMode('combat')">
+      <span>⚔️ Боевое</span>
+    </button>
+  </div>
+
+  <!-- Модификатор к 2d6 -->
+  <div class="modifier-panel">
+    <div class="modifier-label">
+      Модификатор к 2d6
+      <span>влияет на порог исхода (6− / 7–9 / 10+)</span>
+    </div>
+    <div class="modifier-controls">
+      <button class="mod-btn" onclick="changeMod(-1)" title="Уменьшить">-</button>
+      <div class="modifier-val" id="modDisplay">+0</div>
+      <button class="mod-btn" onclick="changeMod(1)" title="Увеличить">+</button>
+      <button class="mod-reset" onclick="resetMod()" title="Сбросить в 0">0</button>
+    </div>
+  </div>
+
+  <!-- Панель костей -->
+  <div class="dice-board">
+    <div class="dice-group">
+      <div class="dice-label">2d6 Исход</div>
+      <div class="dice-pair">
+        <div class="die" id="die1">-</div>
+        <div class="die" id="die2">-</div>
+      </div>
+    </div>
+
+    <div class="dice-divider">+</div>
+
+    <div class="dice-group">
+      <div class="dice-label">d20 Эффект</div>
+      <div class="die d20" id="dieD20">-</div>
+    </div>
+  </div>
+
+  <!-- Кнопки бросков -->
+  <div class="actions-grid">
+    <button class="roll-btn" id="rollBtn" onclick="rollAll()">
+      <span>🎲</span>
+      <span>Полный бросок (2d6 + d20)</span>
+    </button>
+    <div class="secondary-buttons">
+      <button class="sub-btn" id="roll2d6Btn" onclick="rollOnly2d6()">
+        <span>🎲</span>
+        <span>Только 2d6 (Исход)</span>
+      </button>
+      <button class="sub-btn" id="rollD20Btn" onclick="rollOnlyD20()">
+        <span>🎯</span>
+        <span>Только d20 (Эффект)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Результаты -->
+  <div class="results" id="resultsArea">
+    <div class="empty-state">Нажмите «Сделать бросок», чтобы получить результат проверки</div>
+  </div>
+
+  <!-- История -->
+  <div class="history-box" id="historyBox" style="display: none;">
+    <div class="history-title">
+      <span>История последних бросков</span>
+      <span style="cursor:pointer; color:#f43f5e;" onclick="clearHistory()">очистить</span>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+  <!-- Правила коротко -->
+  <details>
+    <summary>Справка по механике</summary>
+    <div>
+      • <b>10+</b> на 2d6 → Чистый успех<br>
+      • <b>7–9</b> на 2d6 → Успех с ценой<br>
+      • <b>6−</b> на 2d6 → Осложнение<br>
+      • <b>2</b> на 2d6 → «Катастрофическая неудача» (применяется ДО эффекта d20)<br>
+      • <b>12</b> на 2d6 → «Идеальная синергия» (применяется поверх обычного исхода)
+    </div>
+  </details>
+</div>
+
+<script>
+let currentMode = 'social';
+let modifier2d6 = 0;
+let history = [];
+let lastRaw2d6 = null;
+let lastSum2d6 = null;
+let lastD20 = null;
+
+function changeMod(delta) {
+  modifier2d6 = Math.max(-10, Math.min(10, modifier2d6 + delta));
+  updateModDisplay();
+}
+
+function resetMod() {
+  modifier2d6 = 0;
+  updateModDisplay();
+}
+
+function updateModDisplay() {
+  const el = document.getElementById('modDisplay');
+  el.textContent = (modifier2d6 > 0 ? '+' : '') + modifier2d6;
+  if (lastRaw2d6 !== null) {
+    lastSum2d6 = lastRaw2d6 + modifier2d6;
+    renderResult(lastSum2d6, lastD20, lastRaw2d6);
+  }
+}
+
+const SOCIAL_TABLE = {
+  success: {
+    1: "НПС проникается симпатией и делится личным секретом (1 полезная деталь о квесте).",
+    2: "НПС предлагает помощь: проводит коротким путём, даёт проводника или временный бонус.",
+    3: "Скидка или бесплатный бонус: товар дешевле, сверху дают мелочь, пропускают без очереди.",
+    4: "НПС доверяет настолько, что открывает доступ в закрытую зону (на 1 сцену).",
+    5: "Персонаж получает репутацию «своего»: охрана не проверяет, местные подсказывают дорогу.",
+    6: "НПС берёт часть риска на себя: сам договаривается с третьим лицом или отвлекает кого-то.",
+    7: "НПС делится контактами: даёт имя и место встречи нужного информатора.",
+    8: "НПС делает исключение из правил: пропускает без документов, закрывает глаза на нарушение.",
+    9: "НПС проявляет щедрость: дарит мелкий полезный предмет (ключ, карту, зелье).",
+    10: "НПС готов поручиться за персонажа перед влиятельным лицом (1 раз).",
+    11: "Персонаж завоёвывает уважение группы: на 1 сцену другие НПС к нему прислушиваются.",
+    12: "НПС раскрывает слабое место врага или схему патруля (1 тактическая деталь).",
+    13: "НПС соглашается без условий и даже ускоряет процесс (экономия времени).",
+    14: "НПС приглашает на закрытое событие/встречу (возможность нового квеста).",
+    15: "НПС даёт «страховку»: если что-то пойдёт не так, он прикроет или замолвит слово.",
+    16: "Персонаж получает вдохновение (аналог Inspiration в D&D) на 1 использование.",
+    17: "НПС рассказывает короткий, но важный слух, который меняет контекст сцены.",
+    18: "НПС добровольно берёт на себя мелкую задачу (доставить записку, передать предмет).",
+    19: "НПС показывает тайный проход/скрытую дверь в этом районе.",
+    20: "Эпичный успех: НПС публично встаёт на сторону персонажа, меняя отношение окружающих на 1 сцену."
+  },
+  partial: {
+    1: "НПС согласен, но просит услугу взамен (долг, который нужно вернуть).",
+    2: "НПС осторожен: даёт только часть информации, остальное — после подтверждения.",
+    3: "НПС требует залог или доказательство лояльности (предмет, клятву, подпись).",
+    4: "НПС сообщает, что за ним следят: любая помощь привлечёт внимание третьей стороны.",
+    5: "НПС помогает, но делает это так, что все вокруг замечают — репутация «высветилась».",
+    6: "НПС ставит условие: действовать нужно прямо сейчас, иначе помощь исчезнет.",
+    7: "НПС просит не упоминать его имя: если раскроют — он откажется от связи.",
+    8: "Помощь оказывается через посредника, который может исказить или задержать сообщение.",
+    9: "НПС предупреждает: «Если узнают, я сделаю вид, что не знаю тебя».",
+    10: "НПС даёт ложную или устаревшую информацию по ошибке (мастер решает, насколько критично).",
+    11: "НПС начинает подозревать мотивы персонажа: следующая проверка против него будет сложнее.",
+    12: "Помощь сопровождается слухом: о действиях персонажа узнают лишние люди.",
+    13: "НПС требует публичного подтверждения лояльности (поклон, жест, фраза).",
+    14: "НПС торопится и делает всё небрежно: результат есть, но с риском сбоя.",
+    15: "НПС намекает на более крупную сделку: мелкая помощь — только первый шаг.",
+    16: "НПС привлекает «своего человека», который будет наблюдать за действиями персонажа.",
+    17: "НПС соглашается, но при свидетелях: теперь у сделки есть «гарант», который может потребовать свою долю.",
+    18: "НПС просит выполнить ещё одно мелкое поручение до начала основной помощи.",
+    19: "НПС даёт информацию, но предупреждает: «Это может стоить тебе отношений с другой фракцией».",
+    20: "НПС помогает, но так, что это выглядит подозрительно: охрана или враги обращают внимание."
+  },
+  fail: {
+    1: "НПС злится и отказывается сотрудничать; может поднять тревогу.",
+    2: "НПС считает персонажа угрозой и докладывает начальству/страже.",
+    3: "НПС публично унижает персонажа: репутация в локации падает на 1 уровень.",
+    4: "НПС подставляет: даёт ложные сведения, которые приведут к ловушке.",
+    5: "НПС вызывает охрану или подкрепление: появляются 1–2 враждебных НПС.",
+    6: "НПС запоминает лицо: в следующий раз охрана будет знать, кого искать.",
+    7: "НПС использует ситуацию против персонажа: выдвигает встречные требования или шантаж.",
+    8: "НПС распространяет слух, который усложняет дальнейшие переговоры в этой локации.",
+    9: "НПС отказывается от прежних договорённостей и аннулирует доступ.",
+    10: "НПС угрожает раскрыть секрет персонажа (если есть что скрывать).",
+    11: "НПС передаёт информацию конкурирующей фракции.",
+    12: "НПС устраивает «проверку»: ставит персонажа в неловкое положение при свидетелях.",
+    13: "НПС блокирует доступ к ресурсу/информации на 1–2 сцены.",
+    14: "НПС провоцирует конфликт между персонажами пати.",
+    15: "НПС записывает требования в «долговой реестр»: долг становится официальным.",
+    16: "НПС открыто обвиняет персонажа в преступлении (ложное или нет).",
+    17: "НПС срывается и устраивает сцену: привлекает внимание лишних людей.",
+    18: "НПС уходит, не договорившись, и уносит с собой ключ/информацию.",
+    19: "НПС заключает сделку с врагом персонажа прямо на глазах у пати.",
+    20: "Катастрофа: НПС инициирует публичное разбирательство или арест (мастер решает степень угрозы)."
+  }
+};
+
+const COMBAT_TABLE = {
+  success: {
+    1: "Попадание с бонусным эффектом: враг теряет 5 футов скорости до конца своего хода.",
+    2: "Враг теряет преимущество: перестаёт быть «скрытым» или «укрытым».",
+    3: "Враг спотыкается и должен потратить действие, чтобы встать (или теряет реакцию).",
+    4: "Выбивание оружия: враг роняет предмет и тратит действие на подбор.",
+    5: "Толкание на 5–10 футов: враг оказывается в неудобной позиции (рядом с ловушкой, в зоне поражения).",
+    6: "Враг получает помеху на следующую атаку (минус к броску).",
+    7: "Персонаж занимает выгодную позицию: получает укрытие или высоту на 1 раунд.",
+    8: "Враг теряет инициативу: его следующий ход откладывается на 1 раунд.",
+    9: "Попадание вызывает кровотечение: враг получает 1к4 урона в начале каждого своего хода (1–2 хода).",
+    10: "Враг оглушён на 1 ход (не может действовать, но сохраняет реакцию).",
+    11: "Враг дезориентирован: не может использовать реакции до конца раунда.",
+    12: "Попадание сбивает концентрацию: если враг кастовал заклинание — оно прерывается.",
+    13: "Враг раскрывает свою тактику: мастер даёт 1 подсказку о его способности или слабости.",
+    14: "Персонаж создаёт зону контроля: враги в радиусе 5 футов получают помеху на атаки по другим целям.",
+    15: "Враг теряет предмет (не оружие): выпадает свиток, зелье, ключ — лежит на поле.",
+    16: "Персонаж получает временное преимущество: +2 к следующей атаке или проверке (1 раунд).",
+    17: "Враг отступает на 5 футов и теряет возможность атаковать в этот ход.",
+    18: "Попадание ломает снаряжение врага (щит, доспех): штраф к КД до ремонта.",
+    19: "Враг отвлекается и не может атаковать персонажа в свой ход (целенаправленно).",
+    20: "Эпичный успех: эффект выглядит зрелищно и деморализует ближайших врагов (все враги в радиусе 10 футов получают помеху на 1 атаку)."
+  },
+  partial: {
+    1: "Попадание есть, но враг контратакует в тот же ход (мастер выбирает цель).",
+    2: "Персонаж раскрылся: получает уязвимость на 1 ход (враги получают преимущество на атаки по нему).",
+    3: "Персонаж тратит больше сил: не может повторить этот маневр в текущем бою.",
+    4: "Персонаж теряет позицию: вынужден отступить на 5 футов или теряет укрытие.",
+    5: "Оружие застревает: нужно потратить действие, чтобы освободить его (или урон снижается на 1 ход).",
+    6: "Персонаж спотыкается, но не падает: минус 5 футов к скорости до конца хода.",
+    7: "Враг успевает занять выгодную позицию, перекрывая путь или отрезая союзника.",
+    8: "Маневр привлекает внимание: 1 дополнительный враг переключается на персонажа.",
+    9: "Персонаж расходует ресурс: теряет 1 заряд способности, ячейку заклинания или предмет.",
+    10: "Попадание наносит меньше урона: враг частично блокирует удар (минус 1к6 урона).",
+    11: "Персонаж оставляет след: враги получают преимущество на поиск/преследование после боя.",
+    12: "Персонаж совершает ошибку в защите: союзник получает помеху на следующую проверку до конца раунда.",
+    13: "Маневр срабатывает, но громко: ближайшие враги слышат шум и могут прийти на помощь.",
+    14: "Персонаж перенапрягается: получает состояние «усталость» (минус 1 к проверкам до короткого отдыха).",
+    15: "Враг использует момент для бафа: активирует способность или выпивает зелье.",
+    16: "Попадание не наносит критический урон, но вызывает эффект состояния: оглушение на 1 действие, ослепление на 1 ход.",
+    17: "Персонаж вынужден сменить тактику: теряет доступ к одному приему на 1 раунд.",
+    18: "Враг парирует удар и получает преимущество на следующую атаку по персонажу.",
+    19: "Персонаж повреждает своё снаряжение: оружие/доспех получает штраф до ремонта (мастер решает размер).",
+    20: "«Двойной эффект»: цель поражена, но рядом стоящий союзник получает случайный урон (1к4) от рикошета/осколка."
+  },
+  fail: {
+    1: "Полный промах с негативным эффектом: персонаж теряет равновесие и падает (без урона, но тратит действие, чтобы встать).",
+    2: "Контратака врага: он наносит урон персонажу без броска атаки (или с преимуществом).",
+    3: "Персонаж роняет оружие: чтобы поднять, нужно потратить действие.",
+    4: "Враг захватывает инициативу: получает +1 к инициативе в следующем раунде.",
+    5: "Персонаж получает состояние: оглушение, ослепление, отравление на 1–2 хода (мастер выбирает).",
+    6: "Срабатывает ловушка или окружение реагирует: падение в яму, огонь, газ (мастер определяет эффект).",
+    7: "Персонаж отрезает путь союзнику: тот получает помеху на передвижение в этом раунде.",
+    8: "Враг контратакует и ломает снаряжение персонажа (щит, оружие): требуется ремонт.",
+    9: "Персонаж привлекает внимание босса/элиты: тот переключается на него в свой ход.",
+    10: "Персонаж тратит ресурс впустую: ячейка заклинания, заряд способности сгорает без эффекта.",
+    11: "Появляется подкрепление врага: +1–2 противника в начале следующего раунда.",
+    12: "Персонаж теряет ориентацию: не может двигаться по плану 1 ход (только базовые действия).",
+    13: "Персонаж наносит себе случайный урон: спотыкается о камень, задевает себя оружием (1к4).",
+    14: "Враг использует уязвимость: получает преимущество на все атаки по персонажу до конца сцены.",
+    15: "Персонаж раскрывает свою тактику: враги получают помеху к его маневрам (мастер решает как).",
+    16: "Окружение становится опасным: гаснет свет, обрушается часть пола, начинается пожар.",
+    17: "Персонаж теряет важный предмет: свиток, ключ, зелье — он падает и разбивается/теряется.",
+    18: "Персонаж вынужден отступить, теряя позицию и отдавая преимущество врагу.",
+    19: "Враг активирует способность, которая напрямую связана с ошибкой персонажа (мастер подбирает эффект).",
+    20: "Катастрофа сцены: крупный обвал, взрыв, прорыв стены — бой переходит в новую фазу с усложнёнными условиями."
+  }
+};
+
+const SPECIALS = {
+  2: {
+    title: "Катастрофическая неудача",
+    social: "НПС не просто отказывает — он публично унижает персонажа, и репутация в локации падает на 1 уровень. Если есть свидетели — они распространяют слух.",
+    combat: "Персонаж роняет оружие ИЛИ теряет равновесие и падает (тратит действие на подъём). Если уже был в невыгодной позиции — враг получает преимущество на следующую атаку по нему.",
+    universal: "Мастер добавляет 1 осложнение сцены (гаснет свет, срабатывает ловушка рядом, появляется патруль раньше срока)."
+  },
+  12: {
+    title: "Идеальная синергия",
+    social: "НПС настолько впечатлён, что предлагает персонажу «скрытый бонус» — 1 деталь, которую он не раскрыл бы иначе (слабое место врага, имя информатора, короткий путь). Бонус даётся только персонажу, сделавшему проверку.",
+    combat: "Попадание гарантированно игнорирует 1 уровень укрытия ИЛИ сбивает врага с ног на 1 ход (даже если обычный эффект был слабее). Если это маневр — он дополнительно даёт +2 к КД персонажа на 1 раунд.",
+    universal: "Мастер добавляет 1 благоприятное изменение сцены (ветер гасит факел врага, дождь смывает следы, дверь сама приоткрывается)."
+  }
+};
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('btnSocial').classList.toggle('active', mode === 'social');
+  document.getElementById('btnCombat').classList.toggle('active', mode === 'combat');
+  if (lastSum2d6 !== null || lastD20 !== null) {
+    renderResult(lastSum2d6, lastD20);
+  }
+}
+
+function randInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function setButtonsDisabled(disabled) {
+  document.getElementById('rollBtn').disabled = disabled;
+  document.getElementById('roll2d6Btn').disabled = disabled;
+  document.getElementById('rollD20Btn').disabled = disabled;
+}
+
+function rollAll() {
+  setButtonsDisabled(true);
+
+  const d1El = document.getElementById('die1');
+  const d2El = document.getElementById('die2');
+  const d20El = document.getElementById('dieD20');
+
+  d1El.classList.add('rolling');
+  d2El.classList.add('rolling');
+  d20El.classList.add('rolling');
+
+  let ticks = 0;
+  const interval = setInterval(() => {
+    d1El.textContent = randInt(1, 6);
+    d2El.textContent = randInt(1, 6);
+    d20El.textContent = randInt(1, 20);
+    ticks++;
+    if (ticks > 8) {
+      clearInterval(interval);
+      const d1 = randInt(1, 6);
+      const d2 = randInt(1, 6);
+      const raw2d6 = d1 + d2;
+      const sum2d6 = raw2d6 + modifier2d6;
+      const d20 = randInt(1, 20);
+
+      lastRaw2d6 = raw2d6;
+      lastSum2d6 = sum2d6;
+      lastD20 = d20;
+
+      d1El.textContent = d1;
+      d2El.textContent = d2;
+      d20El.textContent = d20;
+
+      d1El.classList.remove('rolling');
+      d2El.classList.remove('rolling');
+      d20El.classList.remove('rolling');
+
+      setButtonsDisabled(false);
+      renderResult(sum2d6, d20);
+    }
+  }, 45);
+}
+
+function rollOnly2d6() {
+  setButtonsDisabled(true);
+
+  const d1El = document.getElementById('die1');
+  const d2El = document.getElementById('die2');
+
+  d1El.classList.add('rolling');
+  d2El.classList.add('rolling');
+
+  let ticks = 0;
+  const interval = setInterval(() => {
+    d1El.textContent = randInt(1, 6);
+    d2El.textContent = randInt(1, 6);
+    ticks++;
+    if (ticks > 8) {
+      clearInterval(interval);
+      const d1 = randInt(1, 6);
+      const d2 = randInt(1, 6);
+      lastRaw2d6 = d1 + d2;
+      lastSum2d6 = lastRaw2d6 + modifier2d6;
+
+      d1El.textContent = d1;
+      d2El.textContent = d2;
+
+      d1El.classList.remove('rolling');
+      d2El.classList.remove('rolling');
+
+      setButtonsDisabled(false);
+      renderResult(lastSum2d6, lastD20);
+    }
+  }, 45);
+}
+
+function rollOnlyD20() {
+  setButtonsDisabled(true);
+
+  const d20El = document.getElementById('dieD20');
+  d20El.classList.add('rolling');
+
+  let ticks = 0;
+  const interval = setInterval(() => {
+    d20El.textContent = randInt(1, 20);
+    ticks++;
+    if (ticks > 8) {
+      clearInterval(interval);
+      lastD20 = randInt(1, 20);
+      d20El.textContent = lastD20;
+      d20El.classList.remove('rolling');
+
+      setButtonsDisabled(false);
+      renderResult(lastSum2d6, lastD20);
+    }
+  }, 45);
+}
+
+function renderResult(sum2d6, d20, rawOverride) {
+  if (sum2d6 === null && d20 === null) return;
+
+  const modeLabel = currentMode === 'social' ? 'Социальное' : 'Бой';
+  const raw2d6 = rawOverride !== undefined ? rawOverride : lastRaw2d6;
+  let html = '';
+  let tierKey = 'fail';
+  let tierName = 'Осложнение';
+  let tierClass = 'fail';
+
+  if (sum2d6 !== null) {
+    if (sum2d6 >= 10) {
+      tierKey = 'success';
+      tierName = 'Чистый успех';
+      tierClass = 'success';
+    } else if (sum2d6 >= 7) {
+      tierKey = 'partial';
+      tierName = 'Успех с ценой';
+      tierClass = 'partial';
+    }
+
+    const modSign = modifier2d6 >= 0 ? `+${modifier2d6}` : `${modifier2d6}`;
+    const scoreBreakdown = modifier2d6 !== 0 && raw2d6 !== null
+      ? `Итог: ${sum2d6} (кубики: ${raw2d6} ${modSign})`
+      : `Итог: ${sum2d6}`;
+
+    html += `
+      <div class="tier-badge ${tierClass}">
+        <span>${tierName}</span>
+        <span class="tier-score">${scoreBreakdown} • порог: ${sum2d6 >= 10 ? '10+' : (sum2d6 >= 7 ? '7–9' : '6−')}</span>
+      </div>
+    `;
+
+    // Особое свойство при чистых 2 или 12 на кубиках (по правилам: критические 2/12 срабатывают независимо от модификаторов)
+    if (raw2d6 === 2 || raw2d6 === 12) {
+      const sp = SPECIALS[raw2d6];
+      const spDesc = currentMode === 'social' ? sp.social : sp.combat;
+      html += `
+        <div class="special-card">
+          <div class="special-header">
+            <span>⚡</span>
+            <span>Особое свойство (чистые ${raw2d6} на костях)</span>
+          </div>
+          <div class="special-title">${sp.title}</div>
+          <div class="special-desc">${spDesc}</div>
+          <div class="special-universal"><b>Универсальное:</b> ${sp.universal}</div>
+        </div>
+      `;
+    }
+  }
+
+  // Эффект d20
+  if (d20 !== null) {
+    const table = currentMode === 'social' ? SOCIAL_TABLE : COMBAT_TABLE;
+    const resolvedTierKey = sum2d6 !== null ? tierKey : 'success';
+    const effectText = table[resolvedTierKey][d20];
+
+    html += `
+      <div class="effect-card">
+        <div class="effect-top">
+          <span>Эффект из таблицы (${modeLabel}${sum2d6 === null ? ' — по умолчанию 10+' : ''})</span>
+          <span class="effect-num">d20: ${d20}</span>
+        </div>
+        <div class="effect-text">${effectText}</div>
+      </div>
+    `;
+  } else {
+    html += `
+      <div class="empty-state" style="margin-top: 10px;">Бросьте d20 для определения конкретного эффекта</div>
+    `;
+  }
+
+  document.getElementById('resultsArea').innerHTML = html;
+
+  if (sum2d6 !== null && d20 !== null) {
+    addHistory(modeLabel, sum2d6, d20, tierName);
+  }
+}
+
+function addHistory(mode, sum2d6, d20, tier) {
+  history.unshift({ mode, sum2d6, d20, tier, time: new Date().toLocaleTimeString().slice(0, 5) });
+  if (history.length > 20) history.pop();
+
+  const box = document.getElementById('historyBox');
+  const list = document.getElementById('historyList');
+  box.style.display = 'block';
+
+  list.innerHTML = history.map(item => `
+    <div class="history-item">
+      <span>${item.time} [${item.mode}] — <b>${item.tier}</b></span>
+      <span>2d6: <b>${item.sum2d6}</b> | d20: <b>${item.d20}</b></span>
+    </div>
+  `).join('');
+}
+
+function clearHistory() {
+  history = [];
+  document.getElementById('historyBox').style.display = 'none';
+}
+</script>
+
+</body>
+</html>
